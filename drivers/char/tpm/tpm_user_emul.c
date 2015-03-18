@@ -590,6 +590,9 @@ static void tpm_user_initialiser(struct work_struct *work)
 		ret = tpm2_do_selftest(chip);
 		if (ret)
 			goto err_tpm;
+		ret = tpm_chip_register(chip);
+		if (ret)
+			goto err_tpm;
 	}
 out:
 	state->initialiser_error = ret;
