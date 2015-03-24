@@ -496,7 +496,7 @@ static irqreturn_t tpm_ioserirq_handler(int irq, void *dev_id)
 static int tpm_stm_i2c_send(struct tpm_chip *chip, unsigned char *buf,
 			    size_t len)
 {
-	u32 status, i, size;
+	u32 status, i, size, ordinal;
 	int burstcnt = 0;
 	int ret;
 	u8 data;
@@ -558,6 +558,16 @@ static int tpm_stm_i2c_send(struct tpm_chip *chip, unsigned char *buf,
 
 	data = TPM_STS_GO;
 	I2C_WRITE_DATA(tpm_dev, TPM_STS, &data, 1);
+
+	if (chip->vendor.irq) {
+		ordinal = be32_to_cpu(*((__be32 *) (buf + 6)));
+
+		ret = wait_for_stat(chip, TPM_STS_DATA_AVAIL | TPM_STS_VALID,
+				  tpm_calc_ordinal_duration(chip, ordinal),
+				  &chip->vendor.read_queue, false);
+		if (ret < 0)
+			goto out_err;
+	}
 
 	return len;
 out_err:
