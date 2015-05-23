@@ -1,0 +1,29 @@
+language: c
+compiler:
+  - gcc
+# Change this to your needs
+sudo: false
+addons:
+  apt:
+      packages:
+        - bc
+        - qemu-kvm 
+        - qemu-kvm-extras
+        - genext2fs
+before_script:
+ - mkdir rootfs
+ - wget http://www.hs-augsburg.de/~phuewe/travis/system-image-i686.tar.gz
+ - wget http://www.hs-augsburg.de/~phuewe/travis/init -O rootfs/init
+ - wget http://www.hs-augsburg.de/~phuewe/travis/tpmconfig.txt
+ - tar -xvf system-image-i686.tar.gz
+script: 
+ - ./scripts/extract-ikconfig system-image-i686/linux >.config
+ - cat tpmconfig.txt >> .config
+ - make ARCH=x86 olddefconfig
+ - make -j64
+ - make ARCH=x86 INSTALL_MOD_PATH=rootfs modules_install
+ - cp arch/x86/boot/bzImage system-image-i686/linux
+ - genext2fs -d rootfs -b 1000 system-image-i686/hda.img
+ - cd system-image-i686/
+ - ls
+ - QEMU_EXTRA="-hda hda.img $QEMU_EXTRA" sh run-emulator.sh
